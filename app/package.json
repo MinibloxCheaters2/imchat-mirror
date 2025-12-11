@@ -1,0 +1,17 @@
+{
+  "name": "app",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@types/event-source-polyfill": "^1.0.5",
+    "discord.js": "^14.25.1",
+    "event-source-polyfill": "^1.0.31"
+  }
+}

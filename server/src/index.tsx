@@ -1,4 +1,4 @@
-// import { html, Html } from "@elysiajs/html";
+import { html, Html } from "@elysiajs/html";
 import { Elysia } from "elysia";
 import cors from "@elysiajs/cors";
 import z from "zod";
@@ -25,8 +25,8 @@ async function sendToDiscord(username: string, content: string) {
 }
 
 function broadcast(author: string, message: string) {
-  if (DISCORD_WEBHOOK_URL !== undefined)
-    sendToDiscord(author, message);
+  // if (DISCORD_WEBHOOK_URL !== undefined)
+  //   sendToDiscord(author, message);
   const payload = JSON.stringify({ author, message });
   for (const c of Array.from(clients)) {
     try {
@@ -40,36 +40,36 @@ function broadcast(author: string, message: string) {
 // TODO: remove /test when I'm done testing (never)
 
 const app = new Elysia()
-  // .use(html())
+  .use(html())
   .use(cors())
-  // .get("/test", () => {
-  //   return <html>
-  //     <head>
-  //       <title>Test Page</title>
-  //     </head>
-  //     <body>
-  //       <h1>Testing 123</h1>
-  //       <input type="text" placeholder="Author name" required></input>
-  //       <textarea id="message" placeholder="Enter your message"></textarea>
-  //       <button id="submit">Submit</button>
-  //       <script async defer>
-  //         const evtSource = new EventSource("/listen");
-  //         document.getElementById("submit").onclick = () ={'>'} {'{'}
-  //         const author = document.querySelector("input").value;
-  //         const message = document.getElementById("message").value;
+  .get("/test", () => {
+    return <html>
+      <head>
+        <title>Test Page</title>
+      </head>
+      <body>
+        <h1>Testing 123</h1>
+        <input type="text" placeholder="Author name" required></input>
+        <textarea id="message" placeholder="Enter your message"></textarea>
+        <button id="submit">Submit</button>
+        <script async defer>
+          const evtSource = new EventSource("/listen");
+          document.getElementById("submit").onclick = () ={'>'} {'{'}
+          const author = document.querySelector("input").value;
+          const message = document.getElementById("message").value;
 
-  //         fetch(`/send?author=${'{'}encodeURIComponent(author){'}'}`, {'{'}
-  //         method: "POST",
-  //         headers: {'{'}
-  //         "Content-Type": "text/plain"
-  //         {'}'},
-  //         body: message
-  //         {'}'});
-  //         {'}'};
-  //       </script>
-  //     </body>
-  //   </html>;
-  // })
+          fetch(`/send?author=${'{'}encodeURIComponent(author){'}'}`, {'{'}
+          method: "POST",
+          headers: {'{'}
+          "Content-Type": "text/plain"
+          {'}'},
+          body: message
+          {'}'});
+          {'}'};
+        </script>
+      </body>
+    </html>;
+  })
   .get("/listen", () => {
     let controllerRef: ReadableStreamDefaultController<string> | null = null;
     const stream = new ReadableStream<string>({
