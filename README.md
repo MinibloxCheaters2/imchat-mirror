@@ -1,15 +1,35 @@
-# Elysia with Bun runtime
+# IMChat (Impact Chat)
 
-## Getting Started
-To get started with this template, simply paste this command into your terminal:
-```bash
-bun create elysia ./elysia-example
+## Send messages
+
+Send a POST request to /send with a query parameter named `author`, the request body is the message you want to send.
+
+```js
+// replace `localhost:3000` with your IMChat server domain and port if you run it on an external server
+const IMCHAT_LISTEN_ENDPOINT = "https://localhost:3000/send";
+function sendMessage(message, author) {
+    fetch(`${IMCHAT_LISTEN_ENDPOINT}?author=${encodeURIComponent(author)}`, {
+        method: "POST",
+        body: message
+    });
+}
 ```
 
-## Development
-To start the development server run:
-```bash
+## Listen for messages
+
+Listen to the SSE endpoint (/listen), you will get JSON data, which has a `message` field and an `author` (nullable) field:
+
+```js
+const source = new EventSource("/listen");
+source.addEventListener("message", e => {
+    const { message, author } = JSON.parse(e.data);
+    console.log(`[IRC] <${author ?? "server"}> ${message}`);
+});
+```
+
+## Run
+
+Impact Chat is developed with Bun (because Elysia recommends using it), run it using:
+```sh
 bun run dev
 ```
-
-Open http://localhost:3000/ with your browser to see the result.

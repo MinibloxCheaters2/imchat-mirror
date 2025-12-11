@@ -76,7 +76,7 @@ const app = new Elysia()
       start(controller) {
         controllerRef = controller;
         clients.add(controller);
-        controller.enqueue(`data: ${JSON.stringify({ author: 'system', message: 'connected' })}\n\n`);
+        controller.enqueue(`data: ${JSON.stringify({ author: null, message: "Connected" })}\n\n`);
       },
       cancel() {
         if (controllerRef) {
@@ -88,14 +88,14 @@ const app = new Elysia()
 
     return new Response(stream as unknown as ReadableStream, {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive'
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive"
       }
     });
   }, {
     response: z.object({
-      author: z.string(),
+      author: z.nullable(z.string()),
       message: z.string()
     })
   })
