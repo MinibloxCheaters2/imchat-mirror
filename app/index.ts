@@ -1,11 +1,8 @@
-// Require the necessary discord.js classes
-import { ButtonStyle, ChatInputCommandInteraction, Client, ComponentType, createComponentBuilder, EmbedBuilder, Events, GatewayIntentBits, SharedSlashCommand, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
+import { ButtonStyle, ChatInputCommandInteraction, Client, ComponentType, createComponentBuilder, Events, GatewayIntentBits, SharedSlashCommand, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
 import { LISTEN_ENDPOINT, sendMessage } from './endpoints';
 import {EventSourcePolyfill} from "event-source-polyfill";
+import {CHAT_CHANNEL_ID, GUILD_ID, PLATFORM_ID, TOKEN} from "./env";
 
-const { TOKEN, GUILD_ID, CHAT_CHANNEL_ID } = Bun.env;
-
-// Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
 interface Command {
@@ -23,17 +20,23 @@ const sendCommand = {
 	}
 };
 
+type PlatformID = `${string}:${string}`;
+
 interface Data {
 	message: string;
 	author: string | null;
+	platformID?: PlatformID;
 }
 
 function listenForMessages() {
 	const source = new EventSourcePolyfill(LISTEN_ENDPOINT.href);
 	source.addEventListener("message", e => {
-		const { message, author } = JSON.parse(e.data) as Data;
+		const { message, author, platformID } = JSON.parse(e.data) as Data;
+		// ignore this message, it's from us.
+		if (platformID === PLATFORM_ID)
+			return;
 		const a = author ?? "Server";
-		console.info(`Got message: ${a}: ${message}`);
+		console.info(`Got message: ${a} via ${platformID ?? "unknown platform"}: ${message}`);
 		if (author === null) return;
 		const channel = client.channels.cache.get(CHAT_CHANNEL_ID!)!;
 		if (!channel.isSendable()) {
@@ -41,9 +44,10 @@ function listenForMessages() {
 			return;
 		}
 		channel.send({
+			// we want `@silent` messages
 			flags: "SuppressNotifications",
 			content: message,
-			// no mentions are allowed, don't want someone accidentally doing @everyone in chat and pinging everyone.
+			// no mentions are allowed, don't want someone accidentally saying `@everyone` in chat and pinging everyone.
 			allowedMentions: {},
 			components: [createComponentBuilder({
 				type: ComponentType.ActionRow,
@@ -79,7 +83,6 @@ client.on(Events.InteractionCreate, async i => {
 	}
 });
 
-console.log(CHAT_CHANNEL_ID);
 if (CHAT_CHANNEL_ID !== undefined)
 	client.on(Events.MessageCreate, m => {
 		if (m.author.bot) return;
