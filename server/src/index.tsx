@@ -1,33 +1,20 @@
 import { html, Html } from "@elysiajs/html";
 import { Elysia } from "elysia";
 import cors from "@elysiajs/cors";
+import bearer from "@elysiajs/bearer";
 import z from "zod";
 
 const clients = new Set<ReadableStreamDefaultController<string>>();
-const DISCORD_WEBHOOK_URL = Bun.env.DISCORD_WEBHOOK_URL;
+const DEFAULT_PLATFORM_ID = "imchat:default" as const satisfies PlatformID;
+const platformIDLiteral = z.templateLiteral([z.string(), ":", z.string()]).default(DEFAULT_PLATFORM_ID);
+type PlatformID = `${string}:${string}`;
+const PROTECTED_PLATFORM_IDS: PlatformID[] = ["impact:discord"];
 
-async function sendToDiscord(username: string, content: string) {
-  if (DISCORD_WEBHOOK_URL === undefined) {
-    throw "please include your discord webhook URL if you want to send a message to discord";
-  }
-  const r = await fetch(DISCORD_WEBHOOK_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      content,
-      embeds: [],
-      components: [],
-      username
-    })
-  });
-}
-
-function broadcast(author: string, message: string) {
+const apiKeys = await Bun.file(new URL(import.meta.resolve("../protectedPlatformAPIKeys.json"))).json() as { [ID: PlatformID]: string; };
+function broadcast(author: string, message: string, platformID: PlatformID = DEFAULT_PLATFORM_ID) {
   // if (DISCORD_WEBHOOK_URL !== undefined)
   //   sendToDiscord(author, message);
-  const payload = JSON.stringify({ author, message });
+  const payload = JSON.stringify({ author, message, platformID });
   for (const c of Array.from(clients)) {
     try {
       c.enqueue(`data: ${payload}\n\n`);
@@ -42,6 +29,7 @@ function broadcast(author: string, message: string) {
 const app = new Elysia()
   .use(html())
   .use(cors())
+  .use(bearer())
   .get("/test", () => {
     return <html>
       <head>
@@ -96,22 +84,56 @@ const app = new Elysia()
   }, {
     response: z.object({
       author: z.nullable(z.string()),
-      message: z.string()
+      message: z.string(),
+      platformID: platformIDLiteral.optional()
     })
   })
-  .post("/send", a => {
-    const message = a.body as string;
-    const author = a.query.author as string;
-    console.log(`[IRC] <${author}> ${message}`);
+  .post("/send-protected", a => {
+    const message = a.body;
+    const {author, platformID} = a.query;
 
-    broadcast(author, message);
+    console.log(`[IRC] (AUTHORIZED VIA ${platformID}) <${author}> ${message}`);
+
+    broadcast(author, message, platformID);
+  }, {
+    beforeHandle({ bearer, set, status, query }) {
+      if (!bearer || bearer !== apiKeys[query.platformID]) {
+        set.headers[
+          "WWW-Authenticate"
+        ] = `Bearer realm='/send-protected', error="invalid_request"`
+
+        return status(400, "Unauthorized")
+      }
+      console.info("passed auth");
+    },
+    body: z.string(),
+    query: z.object({
+      author: z.string(),
+      platformID: platformIDLiteral
+    }),
+  })
+  .post("/send", r => {
+    const message = r.body;
+    const {author, platformID = DEFAULT_PLATFORM_ID} = r.query;
+
+    if (PROTECTED_PLATFORM_IDS.includes(platformID)) {
+      return r.status("Unauthorized", `${platformID} is a protected platform ID, please authenticate in order to use it.`);
+    }
+
+    console.log(`[IRC] (NORMAL VIA ${platformID}) <${author}> ${message}`);
+
+    broadcast(author, message, platformID);
   }, {
     body: z.string(),
     query: z.object({
-      author: z.string()
-    })
-  }).listen(3000);
+      author: z.string(),
+      platformID: platformIDLiteral
+    }),
+  })
+  .listen(3000);
+
+export type App = typeof app;
 
 console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
+  `Running on ${app.server?.hostname}:${app.server?.port}`
 );
