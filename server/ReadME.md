@@ -3,16 +3,18 @@
 ## Send messages
 
 Send a POST request to /send with a query parameter named `author`, you can attach a query parameter named `platformID`,
-which can be anything separated by a `:` somewhere (`type PlatformID = ${string}:${string}`).
+which can be anything separated by a `:` somewhere (`type PlatformID = ${string}:${string}`), like a Minecraft `Identifier` / `ResourceLocation`.
 `platformID` defaults to `imchat:default` if not specified.
 There are also protected platform IDs, which require using `/send-protected` instead of `/send` so you can authenticate yourself.
 the request body is the message you want to send.
 
-```js
+```ts
 // replace `localhost:3000` with your IMChat server domain and port if you run it on an external server
 const IMCHAT_SEND_ENDPOINT = "https://localhost:3000/send";
-function sendMessage(message, author) {
-    fetch(`${IMCHAT_SEND_ENDPOINT}?author=${encodeURIComponent(author)}`, {
+type PlatformID = `${string}:${string}`;
+async function sendMessage(message: string, author: string, platformID?: PlatformID) {
+    const base = `${IMCHAT_SEND_ENDPOINT}?author=${encodeURIComponent(author)}`;
+    await fetch(platformID !== undefined ? `${base}&platformID=${encodeURIComponent(platformID)}` : base, {
         method: "POST",
         body: message
     });
