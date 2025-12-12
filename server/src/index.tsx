@@ -26,6 +26,9 @@ function broadcast(author: string, message: string, platformID: PlatformID = DEF
   }
 }
 
+// Cloudflare Workers / Vercel Edge have limits of ≈30 s
+const HEARTBEAT_INTERVAL_MS = 29e3;
+
 // TODO: remove /test when I'm done testing (never)
 
 const app = new Elysia()
@@ -64,16 +67,27 @@ const app = new Elysia()
   })
   .get("/listen", () => {
     let controllerRef: ReadableStreamDefaultController<string> | null = null;
+    let heartbeatInterval: NodeJS.Timeout | undefined = undefined;
     const stream = new ReadableStream<string>({
       start(controller) {
         controllerRef = controller;
         clients.add(controller);
         controller.enqueue(`data: ${JSON.stringify({ author: null, message: "Connected" })}\n\n`);
+        heartbeatInterval = setInterval(() => {
+          try {
+            controller.enqueue(": .\n\n");
+          } catch (e) {
+            console.error(`Error sending heartbeat to a controller: ${e}`)
+          }
+        }, HEARTBEAT_INTERVAL_MS);
       },
       cancel() {
         if (controllerRef) {
           clients.delete(controllerRef);
           controllerRef = null;
+        }
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
         }
       }
     });
