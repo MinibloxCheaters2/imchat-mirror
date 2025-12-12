@@ -92,7 +92,7 @@ const app = new Elysia()
     const message = a.body;
     const {author, platformID} = a.query;
 
-    console.log(`[IRC] (AUTHORIZED VIA ${platformID}) <${author}> ${message}`);
+    console.log(`[IRC] (AUTHORIZED via ${platformID}) <${author}> ${message}`);
 
     broadcast(author, message, platformID);
   }, {
@@ -120,7 +120,7 @@ const app = new Elysia()
       return r.status("Unauthorized", `${platformID} is a protected platform ID, please authenticate in order to use it.`);
     }
 
-    console.log(`[IRC] (NORMAL VIA ${platformID}) <${author}> ${message}`);
+    console.log(`[IRC] (NORMAL via ${platformID}) <${author}> ${message}`);
 
     broadcast(author, message, platformID);
   }, {
