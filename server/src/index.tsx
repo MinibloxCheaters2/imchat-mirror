@@ -7,6 +7,8 @@ import z from "zod";
 const clients = new Set<ReadableStreamDefaultController<string>>();
 const DEFAULT_PLATFORM_ID = "imchat:default" as const satisfies PlatformID;
 const platformIDLiteral = z.templateLiteral([z.string(), ":", z.string()]).default(DEFAULT_PLATFORM_ID);
+// (sorry, MCP is garbage. use a mod loader instead)
+/** Think of a `PlatformID` as an `Identifier` (yarn) or `ResourceLocation` (Minecraft C***r Pack and M*jmap). It's just 2 strings separated by a `:`. */
 type PlatformID = `${string}:${string}`;
 const PROTECTED_PLATFORM_IDS: PlatformID[] = ["impact:discord"];
 
@@ -41,6 +43,8 @@ const app = new Elysia()
         <textarea id="message" placeholder="Enter your message"></textarea>
         <button id="submit">Submit</button>
         <script async defer>
+          {/* TODO: it's probably better to just have this as a static file */}
+          {/* JSX moment, I have to add a bunch of {'(character)'}s because they're special characters in JSX */}
           const evtSource = new EventSource("/listen");
           document.getElementById("submit").onclick = () ={'>'} {'{'}
           const author = document.querySelector("input").value;
