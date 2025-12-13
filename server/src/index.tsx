@@ -81,10 +81,9 @@ const app = new Elysia()
         controller.enqueue(`data: ${JSON.stringify({ author: null, message: "Connected" })}\n\n`);
         heartbeatInterval = setInterval(() => {
           try {
-            console.debug("Send keep alive");
             controller.enqueue(":\n\n");
           } catch (e) {
-            console.error(`Error sending heartbeat to a controller: ${e}`)
+            console.error(`Error sending keepalive to a controller: ${e}`)
           }
         }, HEARTBEAT_INTERVAL_MS);
       },
