@@ -27,7 +27,13 @@ function broadcast(author: string, message: string, platformID: PlatformID = DEF
 }
 
 // Cloudflare Workers / Vercel Edge have limits of ≈30 s
-const HEARTBEAT_INTERVAL_MS = 29e3;
+// our keep alive message: `:\n\n`
+// UTF-8 takes 2 bytes, so multiply that by 2.
+// so we send 3 characters, multiplied by 2, so then it's 6 bytes per message.
+// and we do this every 25 seconds (60 (seconds in a minute) / 25 (our interval) = 2.4), so 2.4 * 6 = 2.4, so 14.4 bytes/minute.
+// of course, round it down to 14 or up to 15.
+// so HOPEFULLY there should be little to no "I'm on mobile data why are you eating up all my left up data!!" complaints.
+const HEARTBEAT_INTERVAL_MS = 25e3;
 
 // TODO: remove /test when I'm done testing (never)
 
@@ -75,7 +81,8 @@ const app = new Elysia()
         controller.enqueue(`data: ${JSON.stringify({ author: null, message: "Connected" })}\n\n`);
         heartbeatInterval = setInterval(() => {
           try {
-            controller.enqueue(": .\n\n");
+            console.debug("Send keep alive");
+            controller.enqueue(":\n\n");
           } catch (e) {
             console.error(`Error sending heartbeat to a controller: ${e}`)
           }
