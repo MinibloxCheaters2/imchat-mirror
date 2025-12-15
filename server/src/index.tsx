@@ -8,11 +8,32 @@ const clients = new Set<ReadableStreamDefaultController<string>>();
 const DEFAULT_PLATFORM_ID = "imchat:default" as const satisfies PlatformID;
 const platformIDLiteral = z.templateLiteral([z.string(), ":", z.string()]).default(DEFAULT_PLATFORM_ID);
 // (sorry, MCP is garbage. use a mod loader instead)
-/** Think of a `PlatformID` as an `Identifier` (yarn) or `ResourceLocation` (Minecraft C***r Pack and M*jmap). It's just 2 strings separated by a `:`. */
+/** Think of a `PlatformID` as an `Identifier` (yarn) or `ResourceLocation` (Minecraft C\*\*\*r Pack and M\*jmap). It's just 2 strings separated by a `:`. */
 type PlatformID = `${string}:${string}`;
-const PROTECTED_PLATFORM_IDS: PlatformID[] = ["impact:discord"];
 
-const apiKeys = await Bun.file(new URL(import.meta.resolve("../protectedPlatformAPIKeys.json"))).json() as { [ID: PlatformID]: string; };
+async function fetchAPIKeysFromFile(): Promise<Record<PlatformID, string> | undefined> {
+  try {
+    await Bun.file(new URL(import.meta.resolve("../protectedPlatformAPIKeys.json"))).json() as Record<PlatformID, string>
+  } catch (e) {
+    return undefined;
+  }
+}
+
+async function fetchAPIKeys(): Promise<Record<PlatformID, string>> {
+  try {
+    const file = await fetchAPIKeysFromFile();
+    if (file !== undefined) return file;
+    const env = Bun.env.PROTECTED_PLATFORM_API_KEYS_JSON;
+    if (env !== undefined) return JSON.parse(env);
+    else return {};
+  } catch (e) {
+    return {};
+  }
+}
+
+const apiKeys = await fetchAPIKeys();
+const protectedPlatformIDs = Object.keys(apiKeys) as PlatformID[];
+
 function broadcast(author: string, message: string, platformID: PlatformID = DEFAULT_PLATFORM_ID) {
   // if (DISCORD_WEBHOOK_URL !== undefined)
   //   sendToDiscord(author, message);
@@ -114,7 +135,7 @@ const app = new Elysia()
   })
   .post("/send-protected", a => {
     const message = a.body;
-    const {author, platformID} = a.query;
+    const { author, platformID } = a.query;
 
     console.log(`[IRC] (AUTHORIZED via ${platformID}) <${author}> ${message}`);
 
@@ -138,9 +159,9 @@ const app = new Elysia()
   })
   .post("/send", r => {
     const message = r.body;
-    const {author, platformID = DEFAULT_PLATFORM_ID} = r.query;
+    const { author, platformID = DEFAULT_PLATFORM_ID } = r.query;
 
-    if (PROTECTED_PLATFORM_IDS.includes(platformID)) {
+    if (protectedPlatformIDs.includes(platformID)) {
       return r.status("Unauthorized", `${platformID} is a protected platform ID, please authenticate in order to use it.`);
     }
 
@@ -156,7 +177,7 @@ const app = new Elysia()
   })
   .listen(3000);
 
-export type App = typeof app;
+export default app;
 
 console.log(
   `Running on ${app.server?.hostname}:${app.server?.port}`
