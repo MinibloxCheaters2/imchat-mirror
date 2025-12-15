@@ -1,0 +1,7 @@
+{
+    "name": "imchat",
+    "workspaces": [
+        "app",
+        "server"
+    ]
+}
